@@ -10,4 +10,4 @@ main.exe:$(OBJS)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
-	$(RM) $(OBJS) main
+	$(RM) $(OBJS) *.exe

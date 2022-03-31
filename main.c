@@ -8,17 +8,19 @@
 int lireProchaineCommande();
 void convertirNenChaine4(int N, char *N4);
 void lireLesCommandes();
+int lireCommande(FILE *ficCommande, char *NNNN);
+float obtenirPrix(int reference);
 
 int main() {
 	//creation d un fichier d'un seul int nommé nextFact et contenant l'int 1
 	// code à utiliser pour réinitialiser nextFact à 1 si besoin au cours du TP 
 
-	/*
+	//TODO: Commenter ça
 	FILE *f;int N=1;
 	f=fopen("nextFact","w");
 	fwrite(&N,1,sizeof(int),f);
 	fclose(f);
-	*/
+	
 
 	//PARTIE 1 du TP : sans Gestion de stock
 	lireLesCommandes(); //lecture de tous les fichiers commandeXXX.txt (fichiers non traités jusqu'ici)	
@@ -44,23 +46,7 @@ int lireProchaineCommande() //pour lire l'int contenu dans nextFact
 
 void convertirNenChaine4(int N, char *N4) //convertit l'int N en une chaine de 4 caracteres
 { // si N=1234 alors N4 sera égal à "1234"
-	int m, c, d, u;
-	char cm, cc, cd, cu;
-	m = N / 1000;
-	cm = 48 + m;
-	N %= 1000;
-	c = N / 100;
-	cc = 48 + c;
-	N %= 100;
-	d = N / 10;
-	cd = 48 + d;
-	u = N % 10;
-	cu = 48 + u;
-	N4[0] = cm;
-	N4[1] = cc;
-	N4[2] = cd;
-	N4[3] = cu;
-	N4[4] = '\0';
+	sprintf(N4, "%04d", N);
 }
 
 
@@ -82,11 +68,13 @@ void lireLesCommandes() //cette fonction ouvre tous les fichiers commandeXXX.txt
 		strcat(nomCommande, ".txt");
 
 		//printf("\n traitement de  %s",nomCommande);
+		printf("%s", nomCommande);
 
 		ficCommande = fopen(nomCommande, "rt");
 		if (ficCommande != NULL) { // le fichier commandeNNNN.txt existe
 			printf("\n fichier %s present", nomCommande);
-			//lireCommande(nomCommande); // à vous de coder cette fonction lors de ce TP9
+			//lireCommande(ficCommande, NNNN); // à vous de coder cette fonction lors de ce TP10
+			printf("\nOlalah ça marche");
 			fclose(ficCommande);
 		} else {
 			printf("\n toutes les commandes presentes ont ete traitees.");
@@ -100,4 +88,46 @@ void lireLesCommandes() //cette fonction ouvre tous les fichiers commandeXXX.txt
 		N++;
 	} while (FINI == 0);
 
+}
+
+int lireCommande(FILE *ficCommande, char *NNNN){
+	int ref, nbProdu;
+	char chaine[50];
+	char nomClient[50];
+	float pu, pl, pTot;
+
+	FILE *ficFacture = NULL;
+	ficFacture=fopen(NNNN,"w"); //TODO: Changer le nom du fichier
+	if(ficFacture == NULL)
+		return 2; //On ne peut pas créer le fichier/Ecrire dedans
+	
+	//TODO: Si ligne 1 non vide
+	fscanf(ficCommande, "%s", nomClient);
+	fprintf(ficFacture, "Client : %s\n", nomClient);
+
+	do{ //FIXME: Mettre la bonne condition (tant que ligne pas vide)
+		//Lire la 2e ligne
+		fscanf(ficCommande, "%d %s %f", &ref, &nbProdu);
+		//pu = obtenirPrix(ref);
+		//TODO: Verifier que pu est différent de -1 (ref indefinie)
+
+		/*
+		pl = pu * nbProdu;
+		pTot += pl;
+
+		*/
+
+
+		fprintf(ficFacture, "Client : %s\n", nomClient);
+		//fwrite(,1,sizeof(int),f);
+			
+
+	}while(1);
+
+	fclose(f);
+	return 0;
+}
+
+float obtenirPrix(int reference){
+	return -1;
 }
