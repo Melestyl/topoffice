@@ -11,19 +11,28 @@ void lireLesCommandes();
 int lireCommande(FILE *ficCommande, char *NNNN);
 float obtenirPrix(unsigned reference);
 char *obtenirNom(unsigned ref, char* nom);
+void retirerStock(unsigned ref, int qte);
+void besoinDeStock(unsigned ref);
 
 int main() {
-	//creation d un fichier d'un seul int nommé nextFact et contenant l'int 1
+	//creation d'un fichier d'un seul int nommé nextFact et contenant l'int 1
 	// code à utiliser pour réinitialiser nextFact à 1 si besoin au cours du TP 
 
 	FILE *f;
 	int N = 1;
 
 	//TODO: Commenter ça
-	f=fopen("nextFact","w");
+	/*f=fopen("ressources/nextFact","w");
 	fwrite(&N,1,sizeof(int),f);
+	fclose(f);*/
+
+	f = fopen("ressources/nextFact", "r");
+	if (f == NULL) {
+		f=fopen("ressources/nextFact","w");
+		fwrite(&N,1,sizeof(int),f);
+	}
 	fclose(f);
-	
+
 
 	//PARTIE 1 du TP : sans Gestion de stock
 	lireLesCommandes(); //lecture de tous les fichiers commandeXXX.txt (fichiers non traités jusqu'ici)	
@@ -40,7 +49,7 @@ int lireProchaineCommande() //pour lire l'int contenu dans nextFact
 {
 	FILE *f;
 	int N;
-	f = fopen("nextFact", "r");
+	f = fopen("ressources/nextFact", "r");
 	fread(&N, sizeof(int), 1, f);
 	fclose(f);
 //printf("\n--->lu N=%d",N);
@@ -80,7 +89,7 @@ void lireLesCommandes() //cette fonction ouvre tous les fichiers commandeXXX.txt
 			fclose(ficCommande);
 		} else {
 			printf("\n toutes les commandes presentes ont ete traitees.");
-			FILE *f = fopen("nextFact", "w"); // on va ecrire la valeur de N dans nextFact
+			FILE *f = fopen("ressources/nextFact", "w"); // on va ecrire la valeur de N dans nextFact
 			fwrite(&N, 1, sizeof(int), f);
 			fclose(f);
 			FINI = 1;
@@ -110,7 +119,7 @@ int lireCommande(FILE *ficCommande, char *NNNN){
 		fprintf(ficFacture, "%10s %50s %20s %10s %10s\n", "Quantité", "Nom", "Réf", "Prix u.", "Total");
 
 		while (fscanf(ficCommande, "%u %d", &ref, &nbProdu) != EOF) {
-			// TODO: Trop de commentaires oskour
+			// FIXME: Trop de commentaires oskour
 
 			//Lire la 2e ligne
 			//pu = obtenirPrix(ref);
@@ -125,10 +134,13 @@ int lireCommande(FILE *ficCommande, char *NNNN){
 			pl = pu * nbProdu;
 			fprintf(ficFacture, "%10d %50s %20u %10f %10f\n", nbProdu, obtenirNom(ref, nomProduit), ref, pu, pl);
 			pTot += pl;
+			retirerStock(ref, nbProdu);
 		}
-		fprintf(ficFacture, "Insérer TVA ici\n");
+		fprintf(ficFacture, "Insérer TVA ici\n"); // TODO: TVA (+20%)
 		fprintf(ficFacture, "\t\tPRIX TOTAL = %f", pTot);
 	}
+
+	fclose(ficFacture);
 	return 0;
 }
 
@@ -136,17 +148,18 @@ float obtenirPrix(unsigned reference){
 	FILE* f = NULL;
 	T_Produit produit;
 
-	f = fopen("produits.txt", "r");
+	f = fopen("ressources/produits.txt", "r");
 	if (f == NULL) {
 		fprintf(stderr, "Erreur d'ouverture de produits.txt");
 		exit(2);
 	}
 
-	while (fscanf(f, "%d %s %f", &produit.reference, produit.libelle, &produit.prixU) != EOF) {
+	while (fscanf(f, "%u %s %f", &produit.reference, produit.libelle, &produit.prixU) != EOF) {
 		if (produit.reference == reference)
 			return produit.prixU;
 	}
 
+	fclose(f);
 	return -1;
 }
 
@@ -154,18 +167,75 @@ char *obtenirNom(unsigned ref, char* nom) {
 	FILE* f = NULL;
 	T_Produit produit;
 
-	f = fopen("produits.txt", "r");
+	f = fopen("ressources/produits.txt", "r");
 	if (f == NULL) {
 		fprintf(stderr, "Erreur d'ouverture de produits.txt");
 		exit(2);
 	}
 
-	while (fscanf(f, "%d %s %f", &produit.reference, produit.libelle, &produit.prixU) != EOF) {
+	while (fscanf(f, "%u %s %f", &produit.reference, produit.libelle, &produit.prixU) != EOF) {
 		if (produit.reference == ref) {
 			strcpy(nom, produit.libelle);
 			return nom;
 		}
 	}
 
+	fclose(f);
 	return "ERREUR";
+}
+
+void retirerStock(unsigned ref, int qte) {
+	FILE *f = NULL;
+	FILE *ftemp = NULL;
+	int stock;
+	unsigned ref2;
+
+	f = fopen("ressources/stock.txt", "r");
+	ftemp = fopen("temp.txt", "w");
+	if (f == NULL) {
+		fprintf(stderr, "Erreur d'ouverture de stock.txt");
+		exit(2);
+	}
+	if (ftemp == NULL) {
+		fprintf(stderr, "Erreur d'ouverture de temp");
+		exit(2);
+	}
+
+	// fscanf(f, "%d %d", &ref2, &stock) != EOF
+	while (fscanf(f, "%u %d", &ref2, &stock) != EOF) {
+		if (ref2 == ref) {
+			stock -= qte;
+			fprintf(ftemp, "%u %d\n", ref2, stock);
+			if (stock <= 0)
+				besoinDeStock(ref);
+		}
+		else
+			fprintf(ftemp, "%d %d\n", ref2, stock);
+	}
+	fclose(f);
+	fclose(ftemp);
+	rename("temp.txt", "ressources/stock.txt");
+}
+
+void besoinDeStock(unsigned ref) {
+	FILE* f = NULL;
+	unsigned ref2;
+	unsigned short isPresent = 0; // = bool
+
+	f = fopen("ressources/alertes.txt", "a+");
+
+	if (f == NULL) {
+		fprintf(stderr, "Erreur d'ouverture de alertes.txt");
+		exit(2);
+	}
+
+	while (fscanf(f, "%u", &ref2) != EOF) {
+		if (ref2 == ref) {
+			isPresent = 1;
+			break;
+		}
+	}
+	if (!isPresent)
+		fprintf(f, "%u\n", ref);
+	fclose(f);
 }
