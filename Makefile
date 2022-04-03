@@ -4,6 +4,7 @@ CFLAGS=-Wall -Wextra
 OBJS=main.o
 
 main.exe:$(OBJS)
+	mkdir -p "factures"
 	$(CC) -o $@ $^ -lm
 
 %.o: %.c
@@ -11,3 +12,6 @@ main.exe:$(OBJS)
 
 clean:
 	$(RM) $(OBJS) *.exe
+
+reset: clean
+	$(RM) factures/*

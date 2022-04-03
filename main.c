@@ -9,14 +9,17 @@ int lireProchaineCommande();
 void convertirNenChaine4(int N, char *N4);
 void lireLesCommandes();
 int lireCommande(FILE *ficCommande, char *NNNN);
-float obtenirPrix(int reference);
+float obtenirPrix(unsigned reference);
+char *obtenirNom(unsigned ref, char* nom);
 
 int main() {
 	//creation d un fichier d'un seul int nommé nextFact et contenant l'int 1
 	// code à utiliser pour réinitialiser nextFact à 1 si besoin au cours du TP 
 
+	FILE *f;
+	int N = 1;
+
 	//TODO: Commenter ça
-	FILE *f;int N=1;
 	f=fopen("nextFact","w");
 	fwrite(&N,1,sizeof(int),f);
 	fclose(f);
@@ -68,18 +71,16 @@ void lireLesCommandes() //cette fonction ouvre tous les fichiers commandeXXX.txt
 		strcat(nomCommande, ".txt");
 
 		//printf("\n traitement de  %s",nomCommande);
-		printf("%s", nomCommande);
 
 		ficCommande = fopen(nomCommande, "rt");
 		if (ficCommande != NULL) { // le fichier commandeNNNN.txt existe
 			printf("\n fichier %s present", nomCommande);
-			//lireCommande(ficCommande, NNNN); // à vous de coder cette fonction lors de ce TP10
-			printf("\nOlalah ça marche");
+			lireCommande(ficCommande, NNNN); // à vous de coder cette fonction lors de ce TP10
+			// printf("\nOlalah ça marche");
 			fclose(ficCommande);
 		} else {
 			printf("\n toutes les commandes presentes ont ete traitees.");
-			FILE *f = fopen("nextFact", "w"); // on va ecrire la valeur de N dans enxtFact
-			// pour
+			FILE *f = fopen("nextFact", "w"); // on va ecrire la valeur de N dans nextFact
 			fwrite(&N, 1, sizeof(int), f);
 			fclose(f);
 			FINI = 1;
@@ -87,47 +88,84 @@ void lireLesCommandes() //cette fonction ouvre tous les fichiers commandeXXX.txt
 
 		N++;
 	} while (FINI == 0);
-
 }
 
 int lireCommande(FILE *ficCommande, char *NNNN){
-	int ref, nbProdu;
-	char chaine[50];
+	unsigned ref;
+	int nbProdu;
+	char chaine[50]; // FIXME: Nom pas explicit, qu'est-ce que c'est ? Est-ce que c'est pour le nom de la facture ?
+	char nomProduit[TAILLE];
 	char nomClient[50];
-	float pu, pl, pTot;
+	float pu, pl, pTot = 0; // FIXME: "pl" ?
 
+	sprintf(chaine, "factures/facture%s.txt", NNNN);
 	FILE *ficFacture = NULL;
-	ficFacture=fopen(NNNN,"w"); //TODO: Changer le nom du fichier
+	ficFacture=fopen(chaine,"w");
 	if(ficFacture == NULL)
 		return 2; //On ne peut pas créer le fichier/Ecrire dedans
 	
-	//TODO: Si ligne 1 non vide
-	fscanf(ficCommande, "%s", nomClient);
-	fprintf(ficFacture, "Client : %s\n", nomClient);
-
-	do{ //FIXME: Mettre la bonne condition (tant que ligne pas vide)
-		//Lire la 2e ligne
-		fscanf(ficCommande, "%d %s %f", &ref, &nbProdu);
-		//pu = obtenirPrix(ref);
-		//TODO: Verifier que pu est différent de -1 (ref indefinie)
-
-		/*
-		pl = pu * nbProdu;
-		pTot += pl;
-
-		*/
-
-
+	// EOF est le retour de la fonction fscanf lorsque la lecture n'a pas pu avoir lieu (fichier vide ou malformé)
+	if (fscanf(ficCommande, "%s", nomClient) != EOF) {
 		fprintf(ficFacture, "Client : %s\n", nomClient);
-		//fwrite(,1,sizeof(int),f);
-			
+		fprintf(ficFacture, "%10s %50s %20s %10s %10s\n", "Quantité", "Nom", "Réf", "Prix u.", "Total");
 
-	}while(1);
+		while (fscanf(ficCommande, "%u %d", &ref, &nbProdu) != EOF) {
+			// TODO: Trop de commentaires oskour
 
-	fclose(f);
+			//Lire la 2e ligne
+			//pu = obtenirPrix(ref);
+			//TODO: Verifier que pu est différent de -1 (ref indefinie)
+			/*
+			pl = pu * nbProdu;
+			pTot += pl;
+			*/
+			//fwrite(,1,sizeof(int),f);
+
+			pu = obtenirPrix(ref);
+			pl = pu * nbProdu;
+			fprintf(ficFacture, "%10d %50s %20u %10f %10f\n", nbProdu, obtenirNom(ref, nomProduit), ref, pu, pl);
+			pTot += pl;
+		}
+		fprintf(ficFacture, "Insérer TVA ici\n");
+		fprintf(ficFacture, "\t\tPRIX TOTAL = %f", pTot);
+	}
 	return 0;
 }
 
-float obtenirPrix(int reference){
+float obtenirPrix(unsigned reference){
+	FILE* f = NULL;
+	T_Produit produit;
+
+	f = fopen("produits.txt", "r");
+	if (f == NULL) {
+		fprintf(stderr, "Erreur d'ouverture de produits.txt");
+		exit(2);
+	}
+
+	while (fscanf(f, "%d %s %f", &produit.reference, produit.libelle, &produit.prixU) != EOF) {
+		if (produit.reference == reference)
+			return produit.prixU;
+	}
+
 	return -1;
+}
+
+char *obtenirNom(unsigned ref, char* nom) {
+	FILE* f = NULL;
+	T_Produit produit;
+
+	f = fopen("produits.txt", "r");
+	if (f == NULL) {
+		fprintf(stderr, "Erreur d'ouverture de produits.txt");
+		exit(2);
+	}
+
+	while (fscanf(f, "%d %s %f", &produit.reference, produit.libelle, &produit.prixU) != EOF) {
+		if (produit.reference == ref) {
+			strcpy(nom, produit.libelle);
+			return nom;
+		}
+	}
+
+	return "ERREUR";
 }
