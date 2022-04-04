@@ -1,15 +1,16 @@
 CC=gcc
 CFLAGS=-Wall -Wextra
 
-OBJS=main.o
+OBJS=topoffice.o
+INCS=topoffice.h prod.h
 
-all: main.exe
+all: topoffice.exe
 
-main.exe:$(OBJS)
+topoffice.exe:$(OBJS)
 	mkdir -p "factures"
 	$(CC) -o $@ $^ -lm
 
-%.o: %.c
+%.o: %.c $(INCS)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
